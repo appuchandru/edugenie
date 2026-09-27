@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>EduGenie | Your AI Learning Assistant</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='style.css') }}" />
+  </head>
+  <body>
+    <main class="page-shell">
+      <section class="hero">
+        <div class="brand-mark" aria-hidden="true">E</div>
+        <div>
+          <p class="eyebrow">NAN MUDHALVAN PROJECT</p>
+          <h1>Edu<span>Genie</span></h1>
+          <p class="subtitle">
+            Your friendly AI learning assistant for clearer concepts and better
+            preparation.
+          </p>
+        </div>
+      </section>
+
+      <section class="workspace" aria-label="EduGenie learning workspace">
+        <div class="form-panel">
+          <label for="task">What would you like to do?</label>
+          <select id="task" name="task">
+            {% for value, label in task_labels.items() %}
+            <option value="{{ value }}">{{ label }}</option>
+            {% endfor %}
+          </select>
+
+          <label for="user-input">Enter your question or study content</label>
+          <textarea
+            id="user-input"
+            name="user_input"
+            rows="9"
+            placeholder="For example: Explain cloud computing in simple words..."
+          ></textarea>
+
+          <button id="generate-button" type="button">
+            <span id="button-label">Generate</span>
+            <span id="button-spinner" class="spinner" hidden></span>
+          </button>
+          <p id="form-message" class="form-message" role="status"></p>
+        </div>
+
+        <div class="result-panel">
+          <div class="result-heading">
+            <div>
+              <p class="eyebrow">YOUR RESULT</p>
+              <h2 id="result-title">Ready when you are</h2>
+            </div>
+            <span class="result-badge">Gemini powered</span>
+          </div>
+          <div id="result-area" class="result-area">
+            <div class="empty-state">
+              <div class="sparkle" aria-hidden="true">✦</div>
+              <h3>Learn something new today</h3>
+              <p>
+                Choose a task, enter your content, and EduGenie will prepare a
+                helpful response for you.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <footer>
+        <span>EduGenie</span>
+        <span>Learn. Practice. Grow.</span>
+      </footer>
+    </main>
+
+    <script>
+      const task = document.getElementById("task");
+      const userInput = document.getElementById("user-input");
+      const generateButton = document.getElementById("generate-button");
+      const buttonLabel = document.getElementById("button-label");
+      const buttonSpinner = document.getElementById("button-spinner");
+      const resultArea = document.getElementById("result-area");
+      const resultTitle = document.getElementById("result-title");
+      const formMessage = document.getElementById("form-message");
+
+      const prompts = {
+        qna: "Ask a question about a subject or concept...",
+        explain: "Enter a topic such as: Operating system processes",
+        quiz: "Enter a topic for 3 multiple-choice questions...",
+        summarize: "Paste the text you want EduGenie to summarize...",
+        learning_path: "Enter a skill or subject you want to learn...",
+      };
+
+      task.addEventListener("change", () => {
+        userInput.placeholder = prompts[task.value];
+      });
+
+      function showResult(text) {
+        resultArea.innerHTML = "";
+        const resultText = document.createElement("div");
+        resultText.className = "result-text";
+        resultText.textContent = text;
+        resultArea.appendChild(resultText);
+      }
+
+      generateButton.addEventListener("click", async () => {
+        const input = userInput.value.trim();
+        formMessage.textContent = "";
+        if (!input) {
+          formMessage.textContent = "Please enter a question, topic, or text.";
+          userInput.focus();
+          return;
+        }
+
+        generateButton.disabled = true;
+        buttonLabel.textContent = "Thinking...";
+        buttonSpinner.hidden = false;
+        resultTitle.textContent = "Preparing your result...";
+        resultArea.innerHTML =
+          '<div class="loading-state"><span class="loader"></span><p>EduGenie is thinking...</p></div>';
+
+        try {
+          const response = await fetch("/generate", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ task: task.value, user_input: input }),
+          });
+          const data = await response.json();
+          resultTitle.textContent = data.task || "EduGenie result";
+          showResult(data.result || "No result was returned.");
+          if (data.success !== "true") {
+            formMessage.textContent = "EduGenie could not complete that request.";
+          }
+        } catch (error) {
+          resultTitle.textContent = "Something went wrong";
+          showResult("Please check that the EduGenie server is running and try again.");
+          formMessage.textContent = "Unable to connect to the application.";
+        } finally {
+          generateButton.disabled = false;
+          buttonLabel.textContent = "Generate";
+          buttonSpinner.hidden = true;
+        }
+      });
+    </script>
+  </body>
+</html>
